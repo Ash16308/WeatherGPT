@@ -44,3 +44,49 @@ graph TD
         end
         subgraph Storage [SQLite Database]
             DB[(weathergpt.db)]
+Run either:
+- On Windows Command Prompt:
+  ```cmd
+  start.bat
+  ```
+- On PowerShell:
+  ```powershell
+  .\start.ps1
+  ```
+- Or directly via Python:
+  ```bash
+  python -m pip install -r requirements.txt
+  python -m uvicorn weathergpt_backend:app --host 0.0.0.0 --port 8000 --reload
+  ```
+### 2. Access the Command Center
+Open your browser and navigate to:
+```
+http://localhost:8000
+```
+- Interactive Command Dashboard: `http://localhost:8000/`
+- Interactive API Documentation (Swagger): `http://localhost:8000/docs`
+---
+## 🧪 Testing Scenarios & Evaluator Walkthrough
+### Scenario 1: Natural Language Weather & Lifestyle Inquiries
+Try asking WeatherGPT in the conversational side-panel:
+- *"Will I need an umbrella in Mumbai today?"*
+- *"Is it safe to go for a run outside right now?"*
+- *"What should I wear for this weather?"*
+- *"What is the air quality and should I wear a mask?"*
+### Scenario 2: 10-Year Climate Change Tracking
+- Click the **`🌍 10-Yr Climate`** prompt chip or ask:
+  *"How does today's weather compare to 10 years ago?"*
+- Notice the **10-Year Climate Delta** telemetry gauge dynamically comparing today's live temperature against the historical reanalysis archive from exactly a decade ago.
+### Scenario 3: Proactive Disaster Drills & IMD Color Coding
+- Click the **`🔥 Disaster Drill`** button in the header navigation.
+- Watch the platform transition into emergency drill mode (e.g. `Flash Flood (RED Alert)` or `Severe Heatwave (ORANGE Alert)`).
+- The pulsing IMD badge changes color, the interactive GIS map highlights the hazard perimeter, the proactive alert banner sounds, and the evacuation go-bag checklist renders specific life-saving instructions.
+### Scenario 4: Low-Bandwidth SMS Fallback Simulator
+- Click the **`💬 SMS Fallback`** button in the header.
+- Type `WEATHER SHIMLA` or `SOS MUMBAI` and click **Transmit**.
+- See the exact 160-character disaster response formatted for cellular SMS broadcasts when internet connectivity collapses.
+---
+## 🛡️ Aligned Authorities & Standards
+- **IMD (India Meteorological Department)**: Weather codes and color-coded alert matrix (Green, Yellow, Orange, Red).
+- **NDMA (National Disaster Management Authority)** & **SACHET Portal**: Immediate disaster survival protocols and evacuation kits for Floods, Cyclones, Heatwaves, Thunderstorms, and Smog.
+- **WMO (World Meteorological Organization)**: Standard 40-class weather codes and air quality thresholds.
