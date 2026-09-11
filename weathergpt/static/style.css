@@ -1,0 +1,49 @@
+/* style.css - Clean, Minimal Disaster Intelligence Styling */
+
+/* Custom Scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #0e1017;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #262c3e;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+/* Active Nav Button */
+.nav-section-btn.active {
+  background-color: #222738 !important;
+  color: #ffffff !important;
+}
+
+/* Leaflet Map Dark Theme */
+.leaflet-container {
+  background-color: #0e1017 !important;
+  font-family: inherit !important;
+}
+
+.leaflet-tile {
+  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) !important;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #141721 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #262c3e !important;
+  border-radius: 8px !important;
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+}

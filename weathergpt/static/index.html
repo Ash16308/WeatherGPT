@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeatherGPT — Conversational Weather & Disaster AI</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            app: {
+              bg: '#0e1017',
+              sidebar: '#141721',
+              card: '#1a1e2b',
+              border: '#262c3e',
+              hover: '#222738',
+              accent: '#38bdf8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="bg-[#0e1017] text-slate-200 font-sans h-screen flex overflow-hidden antialiased">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside id="appSidebar" class="w-64 bg-[#141721] border-r border-[#262c3e] flex flex-col justify-between flex-shrink-0 z-30 transition-all duration-200 -translate-x-full md:translate-x-0 absolute md:relative h-full shadow-xl md:shadow-none">
+    
+    <!-- Top Brand & New Chat -->
+    <div class="p-3.5 border-b border-[#262c3e]/80">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-base tracking-tight text-white">WeatherGPT</span>
+          <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">SIH26068</span>
+        </div>
+        <button id="btnCloseSidebarMobile" class="p-1 text-slate-400 hover:text-white md:hidden">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <button id="btnNewChat" class="w-full py-2 px-3 rounded-lg bg-[#222738] hover:bg-[#2b3147] border border-[#262c3e] text-slate-200 font-medium text-xs flex items-center justify-center gap-2 transition-colors">
+        <i data-lucide="plus" class="w-3.5 h-3.5 text-sky-400"></i>
+        <span>New Chat</span>
+      </button>
+    </div>
+
+    <!-- Location & Indicator Light -->
+    <div class="px-3.5 py-3 border-b border-[#262c3e]/60 space-y-2">
+      <!-- Search Input -->
+      <div class="relative">
+        <i data-lucide="search" class="w-3 h-3 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
+        <input 
+          type="text" 
+          id="sidebarSearchInput" 
+          placeholder="Search location..." 
+          class="w-full pl-7 pr-7 py-1.5 text-xs bg-[#1a1e2b] border border-[#262c3e] rounded-md text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+        />
+        <button id="btnSidebarGPS" title="Use GPS" class="absolute right-1.5 top-1 p-1 text-slate-400 hover:text-sky-400">
+          <i data-lucide="crosshair" class="w-3 h-3"></i>
+        </button>
+        <div id="sidebarSearchResults" class="hidden absolute left-0 right-0 top-full mt-1 bg-[#1a1e2b] border border-[#262c3e] rounded-md shadow-2xl z-50 overflow-hidden divide-y divide-[#262c3e]"></div>
+      </div>
+
+      <!-- Quick City Switchers -->
+      <div class="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
+        <button class="city-pill text-[10px] px-2 py-0.5 rounded bg-[#1a1e2b] hover:bg-[#222738] text-slate-300 whitespace-nowrap" data-city="New Delhi" data-lat="28.6139" data-lon="77.2090">Delhi</button>
+        <button class="city-pill text-[10px] px-2 py-0.5 rounded bg-[#1a1e2b] hover:bg-[#222738] text-slate-300 whitespace-nowrap" data-city="Mumbai" data-lat="19.0760" data-lon="72.8777">Mumbai</button>
+        <button class="city-pill text-[10px] px-2 py-0.5 rounded bg-[#1a1e2b] hover:bg-[#222738] text-slate-300 whitespace-nowrap" data-city="Bengaluru" data-lat="12.9716" data-lon="77.5946">Bengaluru</button>
+        <button class="city-pill text-[10px] px-2 py-0.5 rounded bg-[#1a1e2b] hover:bg-[#222738] text-slate-300 whitespace-nowrap" data-city="Chennai" data-lat="13.0827" data-lon="80.2707">Chennai</button>
+        <button class="city-pill text-[10px] px-2 py-0.5 rounded bg-[#1a1e2b] hover:bg-[#222738] text-slate-300 whitespace-nowrap" data-city="Kolkata" data-lat="22.5726" data-lon="88.3639">Kolkata</button>
+      </div>
+
+      <!-- Clean IMD Light Indicator -->
+      <div id="sidebarImdBadge" class="flex items-center justify-between p-2 rounded-md bg-[#1a1e2b] border border-[#262c3e] text-xs">
+        <div class="flex items-center gap-2">
+          <!-- Light dot -->
+          <span id="indicatorLightDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+          <span id="sidebarImdText" class="font-medium text-slate-300">Normal</span>
+        </div>
+        <span id="sidebarLiveTemp" class="text-white font-semibold">--°C</span>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 p-2.5 space-y-1 overflow-y-auto scrollbar-thin">
+      <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 py-1">Sections</div>
+
+      <button class="nav-section-btn active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors" data-section="section-chat">
+        <i data-lucide="message-square" class="w-3.5 h-3.5 text-sky-400"></i>
+        <span>Chat</span>
+      </button>
+
+      <button class="nav-section-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-[#1a1e2b] hover:text-slate-200 transition-colors" data-section="section-telemetry">
+        <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+        <span>Live Weather & Air</span>
+      </button>
+
+      <button class="nav-section-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-[#1a1e2b] hover:text-slate-200 transition-colors" data-section="section-forecast">
+        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+        <span>Forecast & Trends</span>
+      </button>
+
+      <button class="nav-section-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-[#1a1e2b] hover:text-slate-200 transition-colors" data-section="section-map">
+        <i data-lucide="radar" class="w-3.5 h-3.5"></i>
+        <span>Map Radar</span>
+      </button>
+
+      <button class="nav-section-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-[#1a1e2b] hover:text-slate-200 transition-colors" data-section="section-disaster">
+        <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+        <span>Disaster Safety</span>
+      </button>
+
+      <button class="nav-section-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-[#1a1e2b] hover:text-slate-200 transition-colors" data-section="section-sms">
+        <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+        <span>SMS Fallback</span>
+      </button>
+
+      <div class="pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2">Disaster Drill</div>
+      <button id="btnSidebarSimDrill" class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-red-400 hover:bg-[#1a1e2b] transition-colors">
+        <i data-lucide="flame" class="w-3.5 h-3.5 text-red-400"></i>
+        <span>Simulate Drill</span>
+      </button>
+    </nav>
+
+    <!-- Sidebar Bottom Footer -->
+    <div class="p-3 border-t border-[#262c3e] flex items-center justify-between text-xs text-slate-400">
+      <span class="text-[11px] text-slate-400">Local AI Ready</span>
+      <button id="btnOpenSettingsSidebar" class="p-1.5 rounded hover:bg-[#1a1e2b] text-slate-400 hover:text-white" title="Settings">
+        <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN STAGE ================= -->
+  <main class="flex-1 flex flex-col h-full bg-[#0e1017] relative overflow-hidden">
+
+    <!-- Top Ambient Bar -->
+    <header class="h-12 border-b border-[#262c3e] px-4 flex items-center justify-between z-20 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <button id="btnToggleSidebar" class="p-1.5 rounded text-slate-400 hover:text-white md:hidden">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+
+        <div class="flex items-center gap-2 text-xs">
+          <span id="headerLocationName" class="font-semibold text-white">New Delhi</span>
+          <span class="text-slate-600">•</span>
+          <span id="headerQuickCondition" class="text-slate-400">--°C</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Voice Toggle -->
+        <button id="btnHeaderVoiceToggle" class="p-1.5 rounded text-slate-400 hover:text-white" title="Toggle Voice Readout">
+          <i data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Status Indicator Light -->
+        <div id="headerImdLight" class="flex items-center gap-1.5 px-2 py-1 rounded bg-[#141721] border border-[#262c3e] text-xs">
+          <span id="headerDot" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]"></span>
+          <span id="headerImdText" class="text-slate-300 font-medium">All Clear</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Emergency Banner (Only when hazard exists) -->
+    <div id="proactiveAlertBanner" class="hidden px-4 py-2 bg-red-950/70 border-b border-red-800/60 text-red-200 flex items-center justify-between text-xs z-20 flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        <span id="bannerAlertMessage" class="font-medium">Severe weather warning detected.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnBannerViewGuide" class="underline text-red-300 hover:text-white">Safety Guide</button>
+        <button id="btnDismissBanner" class="p-0.5 text-red-400 hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      </div>
+    </div>
+
+    <!-- ================= SECTIONS ================= -->
+    <div class="flex-1 relative overflow-hidden flex flex-col">
+
+      <!-- ================= 1. CHAT (Main ChatGPT / Claude Style) ================= -->
+      <section id="section-chat" class="app-section flex-1 flex flex-col h-full overflow-hidden">
+        
+        <!-- Chat Stream (NO ROBOT OR USER ICONS!) -->
+        <div id="chatStream" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-3xl w-full mx-auto scrollbar-thin">
+          
+          <!-- Simple Welcome Message -->
+          <div class="text-left text-sm text-slate-300 leading-relaxed py-2">
+            <p class="font-medium text-white mb-1">Hi, I'm WeatherGPT.</p>
+            <p class="text-slate-400">
+              Ask me anything in plain language—like whether you need an umbrella, if it's safe to run outside, how tomorrow looks, or what to do in heavy rain.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Chat Input Dock -->
+        <div class="p-3 sm:p-4 bg-[#0e1017] border-t border-[#262c3e] flex-shrink-0">
+          <div class="max-w-3xl w-full mx-auto space-y-2">
+            
+            <!-- Quick Chips -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+              <button class="prompt-chip text-xs px-2.5 py-1 rounded-full bg-[#141721] border border-[#262c3e] hover:border-slate-500 text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors" data-prompt="Will I need an umbrella today?">
+                Umbrella today?
+              </button>
+              <button class="prompt-chip text-xs px-2.5 py-1 rounded-full bg-[#141721] border border-[#262c3e] hover:border-slate-500 text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors" data-prompt="Is it safe for a run right now?">
+                Safe to run?
+              </button>
+              <button class="prompt-chip text-xs px-2.5 py-1 rounded-full bg-[#141721] border border-[#262c3e] hover:border-slate-500 text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors" data-prompt="What should I wear today?">
+                What to wear?
+              </button>
+              <button class="prompt-chip text-xs px-2.5 py-1 rounded-full bg-[#141721] border border-[#262c3e] hover:border-slate-500 text-slate-400 hover:text-slate-200 whitespace-nowrap transition-colors" data-prompt="What is the weather tomorrow?">
+                Tomorrow's weather
+              </button>
+            </div>
+
+            <!-- Input Bar -->
+            <form id="chatForm" class="relative flex items-center rounded-xl bg-[#141721] border border-[#262c3e] p-1 focus-within:border-slate-500 transition-colors">
+              <button 
+                type="button" 
+                id="btnVoiceInput" 
+                class="p-2 rounded-lg text-slate-400 hover:text-white"
+                title="Voice Input">
+                <i data-lucide="mic" class="w-4 h-4"></i>
+              </button>
+
+              <input 
+                type="text" 
+                id="chatInput" 
+                placeholder="Ask about weather, plans, or safety..." 
+                class="flex-1 bg-transparent px-3 py-1.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
+                autocomplete="off"
+              />
+
+              <button 
+                type="submit" 
+                id="btnSendChat" 
+                class="p-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors">
+                <i data-lucide="arrow-up" class="w-4 h-4"></i>
+              </button>
+            </form>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
+              <span id="voiceStatusIndicator"></span>
+              <span>Layman explanations grounded in live data</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= 2. LIVE WEATHER & AIR ================= -->
+      <section id="section-telemetry" class="app-section hidden flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-4 scrollbar-thin">
+        <div class="flex items-center justify-between border-b border-[#262c3e] pb-2">
+          <h2 class="text-base font-semibold text-white">Current Weather & Air Quality</h2>
+          <button class="btn-back-to-chat text-xs text-sky-400 hover:underline">Back to Chat</button>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#141721] border border-[#262c3e] space-y-3">
+          <div class="flex items-baseline justify-between">
+            <div>
+              <span id="telHeroTemp" class="text-4xl font-bold text-white">--°C</span>
+              <span id="telHeroFeels" class="text-xs text-slate-400 ml-2">Feels like --°C</span>
+            </div>
+            <div id="telHeroDesc" class="text-sm text-slate-300">--</div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#262c3e]">
+            <div class="p-2 rounded bg-[#0e1017]">
+              <div class="text-[10px] text-slate-400">Humidity</div>
+              <div id="telHeroHumidity" class="text-sm font-semibold text-slate-200">--%</div>
+            </div>
+            <div class="p-2 rounded bg-[#0e1017]">
+              <div class="text-[10px] text-slate-400">Wind</div>
+              <div id="telHeroWind" class="text-sm font-semibold text-slate-200">-- km/h</div>
+            </div>
+            <div class="p-2 rounded bg-[#0e1017]">
+              <div class="text-[10px] text-slate-400">Rain</div>
+              <div id="telHeroRain" class="text-sm font-semibold text-slate-200">0 mm</div>
+            </div>
+            <div class="p-2 rounded bg-[#0e1017]">
+              <div class="text-[10px] text-slate-400">Air Quality</div>
+              <div id="telAqiScore" class="text-sm font-semibold text-slate-200">--</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. FORECAST & TRENDS ================= -->
+      <section id="section-forecast" class="app-section hidden flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-4 scrollbar-thin">
+        <div class="flex items-center justify-between border-b border-[#262c3e] pb-2">
+          <h2 class="text-base font-semibold text-white">Forecast & Trajectory</h2>
+          <button class="btn-back-to-chat text-xs text-sky-400 hover:underline">Back to Chat</button>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#141721] border border-[#262c3e]">
+          <div class="text-xs font-medium text-slate-400 mb-3">24-Hour Temperature & Rain Trajectory</div>
+          <div class="h-48 w-full">
+            <canvas id="hourlyTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#141721] border border-[#262c3e]">
+          <div class="text-xs font-medium text-slate-400 mb-3">7-Day Outlook</div>
+          <div id="sevenDayForecastGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2"></div>
+        </div>
+      </section>
+
+      <!-- ================= 4. MAP RADAR ================= -->
+      <section id="section-map" class="app-section hidden flex-1 flex flex-col p-4 sm:p-6 max-w-4xl w-full mx-auto space-y-3">
+        <div class="flex items-center justify-between border-b border-[#262c3e] pb-2 flex-shrink-0">
+          <h2 class="text-base font-semibold text-white">Weather Radar Map</h2>
+          <button class="btn-back-to-chat text-xs text-sky-400 hover:underline">Back to Chat</button>
+        </div>
+        <div class="flex-1 rounded-xl overflow-hidden border border-[#262c3e] relative min-h-[350px]">
+          <div id="weatherMap" class="w-full h-full"></div>
+        </div>
+      </section>
+
+      <!-- ================= 5. DISASTER SAFETY ================= -->
+      <section id="section-disaster" class="app-section hidden flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-4 scrollbar-thin">
+        <div class="flex items-center justify-between border-b border-[#262c3e] pb-2">
+          <h2 class="text-base font-semibold text-white">Disaster Preparedness (NDMA)</h2>
+          <button class="btn-back-to-chat text-xs text-sky-400 hover:underline">Back to Chat</button>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 pb-2">
+          <button class="guide-tab px-3 py-1 text-xs rounded bg-sky-600 text-white" data-hazard="flood">Floods</button>
+          <button class="guide-tab px-3 py-1 text-xs rounded bg-[#141721] text-slate-400 hover:text-white" data-hazard="heatwave">Heatwave</button>
+          <button class="guide-tab px-3 py-1 text-xs rounded bg-[#141721] text-slate-400 hover:text-white" data-hazard="cyclone">Cyclone</button>
+          <button class="guide-tab px-3 py-1 text-xs rounded bg-[#141721] text-slate-400 hover:text-white" data-hazard="air_pollution">Air Pollution</button>
+        </div>
+
+        <div id="guideContentArea" class="space-y-3"></div>
+      </section>
+
+      <!-- ================= 6. SMS FALLBACK ================= -->
+      <section id="section-sms" class="app-section hidden flex-1 overflow-y-auto p-4 sm:p-6 max-w-xl w-full mx-auto space-y-4 scrollbar-thin">
+        <div class="flex items-center justify-between border-b border-[#262c3e] pb-2">
+          <h2 class="text-base font-semibold text-white">SMS Emergency Dispatch (No Internet)</h2>
+          <button class="btn-back-to-chat text-xs text-sky-400 hover:underline">Back to Chat</button>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[#141721] border border-[#262c3e] space-y-3">
+          <p class="text-xs text-slate-400 leading-relaxed">
+            When mobile data towers go down during emergencies, citizens can text WeatherGPT to receive a quick 160-character update.
+          </p>
+
+          <input 
+            type="text" 
+            id="smsInputQuery" 
+            value="WEATHER MUMBAI" 
+            class="w-full px-3 py-2 text-xs bg-[#0e1017] border border-[#262c3e] rounded text-white font-mono"
+          />
+
+          <button 
+            id="btnTestSmsDispatch" 
+            class="w-full py-2 text-xs font-semibold bg-[#262c3e] hover:bg-[#323a52] text-white rounded transition-colors">
+            Transmit Simulated SMS
+          </button>
+
+          <div id="smsOutputDisplay" class="p-3 rounded bg-[#0e1017] border border-[#262c3e] text-slate-300 font-mono text-xs min-h-[60px]">
+            [Ready] Transmit above to simulate...
+          </div>
+          <span id="smsCharCount" class="text-[10px] text-slate-500 block text-right">0 / 160 chars</span>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/60 hidden items-center justify-center p-4">
+    <div class="w-full max-w-sm rounded-xl bg-[#141721] border border-[#262c3e] p-5 shadow-2xl relative">
+      <button id="btnCloseSettingsModal" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <h3 class="text-sm font-semibold text-white mb-3">Settings</h3>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="text-slate-400 block mb-1">OpenAI API Key (Optional):</label>
+          <input 
+            type="password" 
+            id="cfgOpenAiKey" 
+            placeholder="sk-proj-..." 
+            class="w-full px-2.5 py-1.5 bg-[#0e1017] border border-[#262c3e] rounded text-white font-mono focus:outline-none focus:border-sky-500"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="cfgAutoSpeak" class="rounded bg-[#0e1017] border-[#262c3e]" />
+          <span class="text-slate-300">Read out answers with audio voice</span>
+        </div>
+
+        <button id="btnSaveSettings" class="w-full py-1.5 mt-2 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium">
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
